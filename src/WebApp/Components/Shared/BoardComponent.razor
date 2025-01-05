@@ -1,0 +1,97 @@
+@rendermode InteractiveServer
+@inject GameState _state
+
+<HeadContent>
+    <style>
+        :root {
+            --board-bg: yellow; /** the color of the board **/
+            --player1: red;     /** Player 1's piece color **/
+            --player2: blue;    /** Player 2's piece color **/
+        }
+    </style>
+</HeadContent>
+
+<nav>
+    @for (byte i = 0; i < 7; i++)
+    {
+        var col = i;
+        @if (WinnerMessage is null)
+        {
+            <span title="Click to play a piece" @onclick="() => PlayPiece(col)">🔽</span>
+        }
+        else
+        {
+            <span title="Game over">⏹️</span>
+        }
+    }
+</nav>
+
+<article>
+    <br />
+    @if (WinnerMessage is not null)
+    {
+        <span class="@CurrentPlayerClass">@WinnerMessage</span>
+        <button @onclick="ResetGame">Reset the game</button>
+    }
+    else
+    {
+        <span class="@CurrentPlayerClass">@CurrentPlayerMessage</span>
+    }
+</article>
+
+<div>
+    <div class="board">
+        @for (var i = 0; i < 42; i++)
+        {
+            <span class="container">
+                <span></span>
+            </span>
+        }
+    </div>
+    @for (var i = 0; i < 42; i++)
+    {
+        <span class="@_pieces[i]"></span>
+    }
+</div>
+
+@code
+{
+    private string[] _pieces = new string[42];
+
+    private string? WinnerMessage { get; set; }
+    private string CurrentPlayerMessage => $"Player {_state.Player}'s Turn";
+    private string CurrentPlayerClass => _state.Player == 1 ? "alert-danger" : "alert-info";
+
+    protected override void OnInitialized() => _state.ResetGame();
+
+    private void PlayPiece(byte col)
+    {
+        var player = _state.Player;
+        var turn = _state.Turn;
+        var landingRow = _state.PlayPiece(col);
+        if (landingRow == -1)
+            return;
+
+        _pieces[turn] = $"player{player} col{col} drop{landingRow}";
+
+        var winner = _state.CheckForWin();
+
+        if (winner is not null)
+        {
+            if (winner == 0) WinnerMessage = "It's a tie!";
+            else WinnerMessage = $"Player {winner} wins!";
+
+        }
+        else
+        {
+            _state.NextTurn();
+        }
+    }
+
+    private void ResetGame()
+    {
+        _state.ResetGame();
+        WinnerMessage = null;
+        _pieces = new string[42];
+    }
+}
